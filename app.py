@@ -11,11 +11,11 @@ Gradio 问答 Web 服务 — 本地 RAG 系统。
     浏览器打开 http://localhost:7860
 """
 
-import gradio as gr
 import chromadb
+import gradio as gr
 from gradio.themes import Soft
 from openai import OpenAI
-from sentence_transformers import SentenceTransformer, CrossEncoder
+from sentence_transformers import CrossEncoder, SentenceTransformer
 
 from config import (
     CHROMA_DIR,
@@ -175,7 +175,7 @@ def build_prompt(query: str, refs: list[dict], history: list) -> str:
 
 
 def call_llm(query: str, refs: list[dict], history: list | None = None) -> str:
-    """调用 GLM API 生成答案。"""
+    """调用 API 生成答案。"""
     if history is None:
         history = []
     client = get_llm_client()
@@ -207,7 +207,6 @@ from frontend_config import (
     HEADER_HTML,
     FOOTER_HTML,
     PAGE_TITLE,
-    CHATBOT_HEIGHT,
     TEXTBOX_PLACEHOLDER,
     SEND_BTN_LABEL,
     CLEAR_BTN_LABEL,
@@ -263,47 +262,50 @@ def build_ui():
         title=PAGE_TITLE,
         fill_height=True,
     ) as demo:
-        gr.HTML(HEADER_HTML)
+        # 顶部导航栏：品牌 + 新对话按钮
+        with gr.Row(elem_classes=["topbar"]):
+            gr.HTML(HEADER_HTML)
+            clear_btn = gr.Button(
+                CLEAR_BTN_LABEL,
+                variant="secondary",
+                size="sm",
+                scale=0,
+                min_width=88,
+                elem_classes=["new-chat-btn"],
+            )
 
         with gr.Row(elem_classes=["main-row"]):
-            # 左侧：对话区
-            with gr.Column(scale=7):
+            # 左侧：对话区（消息流 + 底部固定输入区）
+            with gr.Column(scale=1, elem_classes=["chat-column"]):
                 chatbot = gr.Chatbot(
                     label="",
                     scale=1,
                     show_label=False,
                     elem_classes=["chatbot"],
-                    height=CHATBOT_HEIGHT,
                 )
 
-                with gr.Row(elem_classes=["input-row"]):
-                    msg = gr.Textbox(
-                        placeholder=TEXTBOX_PLACEHOLDER,
-                        scale=7,
-                        show_label=False,
-                        container=False,
-                    )
-                    send_btn = gr.Button(
-                        SEND_BTN_LABEL,
-                        variant="primary",
-                        scale=1,
-                        min_width=72,
-                    )
+                with gr.Column(elem_classes=["composer"]):
+                    with gr.Row(elem_classes=["input-row"]):
+                        msg = gr.Textbox(
+                            placeholder=TEXTBOX_PLACEHOLDER,
+                            scale=7,
+                            show_label=False,
+                            container=False,
+                        )
+                        send_btn = gr.Button(
+                            SEND_BTN_LABEL,
+                            variant="primary",
+                            scale=1,
+                            min_width=72,
+                        )
+                    gr.HTML(FOOTER_HTML)
 
-                clear_btn = gr.Button(
-                    CLEAR_BTN_LABEL,
-                    variant="secondary",
-                    size="sm",
-                )
-
-            # 右侧：来源追溯面板
-            with gr.Column(scale=3, min_width=280):
+            # 右侧：来源追溯面板（独立滚动）
+            with gr.Column(scale=0, min_width=320, elem_classes=["src-column"]):
                 sources_panel = gr.HTML(
                     value=SOURCES_EMPTY_HTML,
                     elem_classes=["src-panel"],
                 )
-
-        gr.HTML(FOOTER_HTML)
 
         # 事件绑定
         chat_inputs = [msg, chatbot]
